@@ -1,21 +1,61 @@
 import streamlit as st
-from google import genai
 import os
+import google.generativeai as genai
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.vectorstores import FAISS
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
-# Configuração
-st.set_page_config(page_title="Agente SEI", page_icon="📑")
+# ----------------------------
+# Configuração da página
+# ----------------------------
+st.set_page_config(
+    page_title="Agente SEI",
+    page_icon="📑",
+    layout="wide"
+)
 
-st.title("📑 Agente SEI - Usuário")
-st.write("Converse com o assistente treinado em materiais do SEI.")
+# Paleta de cores personalizada via CSS
+st.markdown(
+    """
+    <style>
+    .main {
+        background-color: #f9fafb;
+    }
+    h1, h2, h3 {
+        color: #004080; /* Azul escuro institucional */
+    }
+    .stButton button {
+        background-color: #004080;
+        color: white;
+        border-radius: 10px;
+        padding: 0.6em 1.2em;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
+# ----------------------------
+# Cabeçalho com logos
+# ----------------------------
+col1, col2, col3 = st.columns([1, 4, 1])
+with col1:
+    st.image("assets/logo_prefeitura.png", width=100)  # sua logo prefeitura
+with col2:
+    st.title("📑 Agente SEI - Usuário")
+    st.write("Converse com o assistente treinado em materiais do SEI.")
+with col3:
+    st.image("assets/logo_sei.png", width=100)  # logo SEI
+
+# ----------------------------
 # Inicializa Gemini
-client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+# ----------------------------
+genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 
-# --- Carregar base local (PDFs) ---
+# ----------------------------
+# Carregar base local (PDFs)
+# ----------------------------
 @st.cache_resource
 def carregar_base():
     documentos = []
@@ -33,14 +73,9 @@ def carregar_base():
 
 db = carregar_base()
 
-# --- Interface ---
-pergunta = st.text_input("Digite sua dúvida sobre o SEI:")
-
-if pergunta:
-    docs = db.similarity_search(pergunta, k=3)
-    contexto = "\n\n".join([d.page_content for d in docs])
-
-# --- Prompt do Agente SEI ---
+# ----------------------------
+# Prompt do Agente SEI
+# ----------------------------
 prompt_sistema = """
 Você é o Agente SEI, assistente virtual da Prefeitura de Pedro Leopoldo.
 
@@ -58,17 +93,16 @@ Caso a pergunta não esteja na sua base de conhecimento, você deve:
 - Responder de forma geral.
 - Orientar o usuário a procurar a equipe de suporte do SEI local.
 
-Exemplos de como agir:
-- Se perguntarem: “Como faço meu primeiro acesso ao SEI?” → você responde com o passo a passo do login inicial.
-- Se perguntarem: “Quem libera meu acesso?” → você explica que o acesso é solicitado pela secretaria do usuário e liberado pelo setor responsável.
-- Se perguntarem algo fora do escopo (ex.: férias, salário): → você responde: “Essa dúvida não é sobre o SEI. Recomendo procurar o setor de RH da Prefeitura.”
-
 Tom de voz:
 Próximo, colaborativo, paciente.
 Sempre encoraja os servidores: “Você consegue fazer isso em poucos passos, vou te mostrar como…”.
 """
 
-# --- Construção dinâmica do prompt ---
+# ----------------------------
+# Interface
+# ----------------------------
+pergunta = st.text_input("Digite sua dúvida sobre o SEI:")
+
 if pergunta:
     docs = db.similarity_search(pergunta, k=3)
     contexto = "\n\n".join([d.page_content for d in docs])
@@ -83,14 +117,17 @@ if pergunta:
     {pergunta}
     """
 
-    resposta = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=prompt
-    )
+    resposta = genai.GenerativeModel("gemini-2.5-flash").generate_content(prompt)
+
+    if resposta.candidates:
+        resposta_texto = resposta.candidates[0].content.parts[0].text
+    else:
+        resposta_texto = "❌ Não foi possível gerar resposta."
 
     st.markdown("### 📌 Resposta do Agente SEI:")
-    st.write(resposta.text)
+    st.write(resposta_texto)
 
     with st.expander("🔎 Fontes consultadas"):
         for d in docs:
             st.write(f"- {d.metadata.get('source')} (página {d.metadata.get('page', '?')})")
+
