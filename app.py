@@ -65,7 +65,10 @@ def carregar_base():
         if pdf.endswith(".pdf"):
             loader = PyPDFLoader(os.path.join(folder, pdf))
             documentos.extend(loader.load())
-    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+    splitter = RecursiveCharacterTextSplitter(
+    chunk_size=500,     
+    chunk_overlap=100    
+)
     chunks = splitter.split_documents(documentos)
 
     embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
