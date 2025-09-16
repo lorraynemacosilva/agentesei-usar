@@ -66,8 +66,8 @@ def carregar_base():
             loader = PyPDFLoader(os.path.join(folder, pdf))
             documentos.extend(loader.load())
     splitter = RecursiveCharacterTextSplitter(
-    chunk_size=500,     
-    chunk_overlap=100    
+    chunk_size=800,
+    chunk_overlap=100
 )
     chunks = splitter.split_documents(documentos)
 
