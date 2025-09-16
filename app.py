@@ -52,7 +52,7 @@ with col3:
 # ----------------------------
 # Inicializa Gemini
 # ----------------------------
-genai.configure(api_key=os.environ["GEMINI_API_KEY"])
+genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
 
 # ----------------------------
 # Carregar base local (PDFs)
